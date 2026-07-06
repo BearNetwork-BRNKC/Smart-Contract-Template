@@ -1,6 +1,4 @@
-# Smart-Contract-Template
-
-# BNES-ERC20: Physics-Informed Token Template for BearNetworkChain (BNES)
+# BNES-ERC20 Template Detailed Guide
 
 ## Overview
 
