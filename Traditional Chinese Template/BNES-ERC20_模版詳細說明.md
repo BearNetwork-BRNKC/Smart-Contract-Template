@@ -50,9 +50,9 @@ function decimals() public pure override returns (uint8) {
 #### ⛔ 不適用 3：傳統 Ethereum 鏈或一般 EVM 鏈
 > 包含 Ethereum 主網、BSC、Polygon、Arbitrum、Optimism 等
 
-**技術原因**：`IBNESPhysicsCore(BNES_CORE)` 中的 `0x0000000000000000000000000000000000000F15` 是 BNES 節點在初始化時向 EVM 注入的**自定義預編譯合約 (Precompile)**，對應的 Go 實作在 `core/vm/` 目錄下。
+**技術原因**：`IBNESPhysicsCore(BNES_CORE)` 中的 `0x0000000000000000000000000000000000000088` 是 BNES 節點在初始化時向 EVM 注入的**自定義預編譯合約 (Precompile)**，對應的 Go 實作在 `core/vm/` 目錄下。
 
-在任何非 BNES 的 EVM 鏈上，`0x...F15` 這個地址要麼是空地址 (EOA)，要麼根本不存在對應的預編譯邏輯。呼叫它的結果是：
+在任何非 BNES 的 EVM 鏈上，0x0000000000000000000000000000000000000088` 這個地址要麼是空地址 (EOA)，要麼根本不存在對應的預編譯邏輯。呼叫它的結果是：
 
 ```
 情況 A（地址為空）→ CALL 返回 true，但 isCanonicalAuthenticated 返回 false
@@ -74,7 +74,7 @@ function decimals() public pure override returns (uint8) {
 #### 硬綁定 1：`BNES_CORE` 預編譯地址
 ```solidity
 // ✅ 正確：必須硬寫常數，不可使用變數或傳入參數
-address public constant BNES_CORE = 0x0000000000000000000000000000000000000F15;
+address public constant BNES_CORE = 0x0000000000000000000000000000000000000088;
 
 // ❌ 危險：若改為可更新，攻擊者可將其替換為惡意合約，繞過所有物理驗證
 address public bnesCore; // setter 被攻擊者呼叫後，整個安全架構崩潰
@@ -652,7 +652,7 @@ interface IBNESPhysicsCore {
 
 contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, ERC20Permit, ERC20Votes, ERC20FlashMint {
     
-    address public constant BNES_CORE = 0x0000000000000000000000000000000000000f15;
+    address public constant BNES_CORE = 0x0000000000000000000000000000000000000088;
     
     address public tokenBridge;
     mapping(address => bool) private _blacklist;
