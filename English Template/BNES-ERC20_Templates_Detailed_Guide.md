@@ -54,9 +54,9 @@ Frontend display: 1.000000 USDT (conversion logic in frontend)
 
 > Including Ethereum mainnet, BSC, Polygon, Arbitrum, Optimism, etc.
 
-**Technical Reason**: The `0x0000000000000000000000000000000000000F15` within `IBNESPhysicsCore(BNES_CORE)` is a **custom precompile contract (Precompile)** injected into EVM by BNES nodes during initialization, with the corresponding Go implementation in the `core/vm/` directory.
+**Technical Reason**: The `0x0000000000000000000000000000000000000088` within `IBNESPhysicsCore(BNES_CORE)` is a **custom precompile contract (Precompile)** injected into EVM by BNES nodes during initialization, with the corresponding Go implementation in the `core/vm/` directory.
 
-On any non-BNES EVM chain, the address `0x...F15` is either an empty address (EOA) or has no corresponding precompile logic. The result of calling it is:
+On any non-BNES EVM chain, the address `0x0000000000000000000000000000000000000088` is either an empty address (EOA) or has no corresponding precompile logic. The result of calling it is:
 
 ```
 Case A (address is empty) → CALL returns true, but isCanonicalAuthenticated returns false
@@ -80,7 +80,7 @@ Developers are **strictly forbidden** from modifying the following designs:
 
 ```solidity
 // ✅ Correct: Must hardcode as constant; cannot use variables or passed parameters
-address public constant BNES_CORE = 0x0000000000000000000000000000000000000F15;
+address public constant BNES_CORE = 0x0000000000000000000000000000000000000088;
 
 // ❌ Dangerous: If made updatable, attackers can replace it with a malicious contract, bypassing all physical verification
 address public bnesCore; // setter called by attacker after which entire security architecture collapses
@@ -666,7 +666,7 @@ interface IBNESPhysicsCore {
 
 contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, ERC20Permit, ERC20Votes, ERC20FlashMint {
     
-    address public constant BNES_CORE = 0x0000000000000000000000000000000000000f15;
+    address public constant BNES_CORE = 0x0000000000000000000000000000000000000088;
     
     address public tokenBridge;
     mapping(address => bool) private _blacklist;
