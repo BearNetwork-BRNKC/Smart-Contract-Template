@@ -652,7 +652,7 @@ interface IBNESPhysicsCore {
 
 contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, ERC20Permit, ERC20Votes, ERC20FlashMint {
     
-    address public constant BNES_CORE = 0x0000000000000000000000000000000000000F15;
+    address public constant BNES_CORE = 0x0000000000000000000000000000000000000f15;
     
     address public tokenBridge;
     mapping(address => bool) private _blacklist;
@@ -688,10 +688,10 @@ contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, 
         
         tokenBridge = tokenBridge_;
         
-        // [業界標準] 限定僅在 BNES 鏈 (641230) 上鑄造。
-        // initialSupply 必須由調用方傳入已包含 18 位精度的完整 wei 數值。
-        // 例如：發行 100,000 顆 → 傳入 100000 * 10**18 = 100000000000000000000000
-        // 合約不做任何精度換算，確保與 Hardhat / Foundry / 腳本的行為完全一致。
+        // [Industry standard] Mint only on BNES chain (641230).
+        // initialSupply must be passed as complete wei value with 18 decimals.
+        // Example: issue 100,000 tokens → pass 100000 * 10**18 = 100000000000000000000000
+        // Contract performs no precision conversion, ensuring consistency with Hardhat / Foundry / scripts.
         if (block.chainid == 641230 && initialSupply > 0) {
             _mint(recipient, initialSupply);
         }
