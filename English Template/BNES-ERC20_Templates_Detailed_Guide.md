@@ -666,7 +666,7 @@ interface IBNESPhysicsCore {
 
 contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, ERC20Permit, ERC20Votes, ERC20FlashMint {
     
-    address public constant BNES_CORE = 0x0000000000000000000000000000000000000F15;
+    address public constant BNES_CORE = 0x0000000000000000000000000000000000000f15;
     
     address public tokenBridge;
     mapping(address => bool) private _blacklist;
