@@ -139,7 +139,7 @@ function bridgeMint(
 
 ### Do Not Deploy on Non-BNES Chains
 
-This contract relies on the custom BNES precompile at `0x0000000000000000000000000000000000000F15`. Deploying it on Ethereum, BSC, Polygon, or any other EVM chain will cause all transfers to revert permanently, turning the token into a "zombie token."
+This contract relies on the custom BNES precompile at `0x0000000000000000000000000000000000000088`. Deploying it on Ethereum, BSC, Polygon, or any other EVM chain will cause all transfers to revert permanently, turning the token into a "zombie token."
 
 ### Do Not Modify Immutable Rules
 
