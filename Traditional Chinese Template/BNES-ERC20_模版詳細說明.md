@@ -52,7 +52,7 @@ function decimals() public pure override returns (uint8) {
 
 **技術原因**：`IBNESPhysicsCore(BNES_CORE)` 中的 `0x0000000000000000000000000000000000000088` 是 BNES 節點在初始化時向 EVM 注入的**自定義預編譯合約 (Precompile)**，對應的 Go 實作在 `core/vm/` 目錄下。
 
-在任何非 BNES 的 EVM 鏈上，0x0000000000000000000000000000000000000088` 這個地址要麼是空地址 (EOA)，要麼根本不存在對應的預編譯邏輯。呼叫它的結果是：
+在任何非 BNES 的 EVM 鏈上，`0x0000000000000000000000000000000000000088` 這個地址要麼是空地址 (EOA)，要麼根本不存在對應的預編譯邏輯。呼叫它的結果是：
 
 ```
 情況 A（地址為空）→ CALL 返回 true，但 isCanonicalAuthenticated 返回 false
@@ -143,7 +143,6 @@ function decimals() public pure override returns (uint8) {
     return 8; // 會導致 projectFlux 傳入的通量量級錯誤，觸發 RF-1
 }
 ```
-
 
 ### 🟢 可調整的部分 (Customizable) — 生產級實用作法
 
@@ -345,10 +344,68 @@ function setBlacklist(address account, bool status) external onlyOwner onlyQuant
 
 ---
 
-### 區塊 5：零知識跨鏈證明 `bridgeMint` — 生態接入全攻略
+### 區塊 5：零知識跨鏈證明 `bridgeMint` — 生態接入全攻略（已調整）
 
-* **功能說明**：跨鏈操作時，要求傳入 Halo2-KZG 生成的 ZK 證明，確保跨鏈資產在異構鏈間的狀態是絕對 18 位精度對齊的。
-* **如果「不加入」**：雖然能進行普通的合約橋接，但無法獲得 BNES v1.3 第 8 點規定的「執行一致性跨鏈證明」。若跨鏈橋的 Relayer 節點作惡，將缺乏最後一道 ZK 電路的數學剛性防線，可能面臨 RF-11 (Circuit Divergence) 風險。
+由於目前主力採用**社區版狐狸錢包中介跨鏈**，`bridgeMint` 已調整為**可選模組**。
+
+**tokenBridge_ 處理原則**：
+- 可傳 `address(0)`（社區版推薦）
+- 若未來需 ZK Relayer 合約橋接，可呼叫 `setTokenBridge()` 設定
+
+```solidity
+// 狀態追蹤：防止同一筆跨鏈交易重放
+mapping(bytes32 => bool) public processedBridgeTx;
+
+// 橋接凍結開關：緊急情況可暫停跨鏈
+bool public bridgePaused = false;
+
+// 事件：供後端監聽確認跨鏈狀態
+event BridgeMinted(address indexed to, uint256 amount, bytes32 indexed srcTxHash);
+event BridgeBurned(address indexed from, uint256 amount, bytes32 indexed destChainId);
+
+// ── 從其他鏈鑄造進 BNES (Relayer 呼叫) ──
+function bridgeMint(
+    address to,
+    uint256 amount,
+    bytes calldata zkWitness,
+    bytes32 stateRoot,
+    bytes32 srcTxHash         // 來源鏈的原始交易 Hash，用於防重放
+) external onlyQuantumSafe {
+    if (tokenBridge == address(0)) revert BridgeDisabled("Community wallet bridge mode is active");
+    require(!bridgePaused, "Bridge is paused");
+    require(msg.sender == tokenBridge, "Only bridge relayer");
+    require(!processedBridgeTx[srcTxHash], "Tx already processed"); // 防重放
+
+    // ZK 電路驗證：確保 Sigma_balances = Gamma_state
+    if (!IBNESPhysicsCore(BNES_CORE).verifyPhysicalWitness(zkWitness, stateRoot)) {
+        revert InvalidZKProof();
+    }
+
+    processedBridgeTx[srcTxHash] = true; // 標記已處理，防止二次重放
+    _mint(to, amount);
+    emit BridgeMinted(to, amount, srcTxHash);
+}
+
+// ── 從 BNES 銷毀送往其他鏈 (用戶呼叫) ──
+function bridgeBurn(uint256 amount, bytes32 destChainId) external onlyQuantumSafe {
+    require(!bridgePaused, "Bridge is paused");
+    require(amount > 0, "Amount must be > 0");
+    _burn(msg.sender, amount);
+    // 燃燒後由 BNES 節點的事件監聽器通知 Relayer，在目標鏈解鎖資產
+    emit BridgeBurned(msg.sender, amount, destChainId);
+}
+
+// ── 緊急暫停橋接（僅 Owner） ──
+function setBridgePaused(bool paused) external onlyOwner onlyQuantumSafe {
+    bridgePaused = paused;
+}
+
+// ── 更換橋接 Relayer 地址（僅 Owner，防止 Relayer 作惡） ──
+function setTokenBridge(address newBridge) external onlyOwner onlyQuantumSafe {
+    require(newBridge != address(0), "Invalid bridge address");
+    tokenBridge = newBridge;
+}
+```
 
 ---
 
@@ -542,6 +599,7 @@ function bridgeMintAndStake(
 }
 ```
 
+---
 
 ## 🛡️ 四、 已知漏洞防禦與安全性總結 (Security & Vulnerabilities)
 
@@ -605,7 +663,7 @@ function bridgeMintAndStake(
 佈署時，依序填寫以下 6 個參數：
 1. **`name_`**: 代幣名稱（例如：`Bear Network Chain`）
 2. **`symbol_`**: 代幣簡稱（例如：`BRNKC`）
-3. **`tokenBridge_`**: 橋接合約地址（不可為 `0x00...00`）
+3. **`tokenBridge_`**: 橋接合約地址（**可傳 `address(0)`**，社區版推薦佈署時填入 0x0000000000000000000000000000000000000000）
 4. **`initialOwner`**: 初始管理員地址
 5. **`recipient`**: 初始代幣接收地址
 6. **`initialSupply`**: 初始發行數量（業界原生標準，**調用方負責精度換算**，詳見下表）
@@ -661,9 +719,11 @@ contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, 
     error QuantumVulnerabilityDetected();
     error InvalidAddress();
     error InvalidZKProof();
+    error BridgeDisabled();
 
     event FluxProjected(address indexed from, address indexed to, uint256 value);
     event BlacklistUpdated(address indexed account, bool status);
+    event TokenBridgeUpdated(address indexed newBridge);
 
     modifier onlyQuantumSafe() {
         if (!IBNESPhysicsCore(BNES_CORE).isCanonicalAuthenticated(tx.origin)) {
@@ -684,7 +744,7 @@ contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, 
         Ownable(initialOwner)
         ERC20Permit(name_)
     {
-        if (tokenBridge_ == address(0) || initialOwner == address(0) || recipient == address(0)) revert InvalidAddress();
+        if (initialOwner == address(0) || recipient == address(0)) revert InvalidAddress();
         
         tokenBridge = tokenBridge_;
         
@@ -716,11 +776,17 @@ contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, 
     }
 
     function bridgeMint(address to, uint256 amount, bytes calldata zkWitness, bytes32 stateRoot) external onlyQuantumSafe {
+        if (tokenBridge == address(0)) revert BridgeDisabled();
         if (msg.sender != tokenBridge) revert Unauthorized();
         if (!IBNESPhysicsCore(BNES_CORE).verifyPhysicalWitness(zkWitness, stateRoot)) {
             revert InvalidZKProof();
         }
         _mint(to, amount);
+    }
+
+    function setTokenBridge(address newBridge) external onlyOwner onlyQuantumSafe {
+        tokenBridge = newBridge;
+        emit TokenBridgeUpdated(newBridge);
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC1363) returns (bool) {
@@ -732,3 +798,5 @@ contract MyGammaToken is ERC20, Ownable, ERC20Burnable, ERC20Pausable, ERC1363, 
     }
 }
 ```
+
+---
