@@ -603,7 +603,7 @@ function bridgeMintAndStake(
 本模板已將所有可變參數提升到建構子 (Constructor) 的輸入欄位中，**Solidity 源碼本身無需任何修改**，直接複製貼上即可。
 
 佈署時，依序填寫以下 6 個參數：
-1. **`name_`**: 代幣名稱（例如：`Bear Network`）
+1. **`name_`**: 代幣名稱（例如：`Bear Network Chain`）
 2. **`symbol_`**: 代幣簡稱（例如：`BRNKC`）
 3. **`tokenBridge_`**: 橋接合約地址（不可為 `0x00...00`）
 4. **`initialOwner`**: 初始管理員地址
