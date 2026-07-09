@@ -352,7 +352,7 @@ function setBlacklist(address account, bool status) external onlyOwner onlyQuant
 
 ---
 
-#### 🌉 接入場景 A：BNES 官方跨鏈橋 (ZK Bridge) — 完整生產實作
+#### 🌉 接入場景 A：BNES 社區跨鏈橋 (ZK Bridge) — 完整生產實作
 
 這是最標準的跨鏈橋接方式，需配合橋接 Relayer 後端服務一同運作。
 
